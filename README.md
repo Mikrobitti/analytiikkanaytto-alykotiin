@@ -1,11 +1,11 @@
 # Analytiikkanäyttö Älykotiin - Mikrobitti 2/2020
 
-Oheisesta repositoriosta löytyy vinkkejä helmikuun 2020 Mikrobitin 'Analytiikkanäyttö älykotiin' taikapeilinrakennusosioon. Tee-se-itse kotiautomaatiota -artikkelisarjan 3. osa.
+Oheisesta repositoriosta löytyy vinkkejä helmikuun 2020 Mikrobitin *Analytiikkanäyttö älykotiin* taikapeilinrakennusosioon. Tee-se-itse kotiautomaatiota -artikkelisarjan 3. osa.
 
 
 ## MagicMirror -taikapeilin rakennusvaiheet
 
-Kuvitetut ohjeet itse taikapeilin kasaamiseen löydät Mikrobitistä 2/2020. Tällä sivulla tarkemmin vinkkejä peilin ohjelmistopuolen käyttöönottoon sekä hieman vinkkejä peilin kustomoimiseksi.
+Kuvitetut ohjeet itse taikapeilin kasaamiseen löydät Mikrobitistä 2/2020. Tällä sivulla tarkemmin vinkkejä peilin ohjelmistopuolen käyttöönottoon sekä peilin ohjelmapuolen kustomointiin.
 
 
 ### Käyttöjärjestelmän asentaminen Raspberry Pi:lle
@@ -87,4 +87,68 @@ MagicMirror-tarjoaa helpohkon rajapinnan omien näyttömoduulien rakentamiseen, 
 Muutaman manuaaliasennuksen jälkeen saatat haluta kokeilla [MagicMirror Package Manageria](https://github.com/Bee-Mar/mmpm) moduulien hallintaan.
 
 
+### Automaattinen virransäästötila käyttöön
+
+Ylläolevilla ohjeilla taikapeilinäyttö on aina päällä. Joissakin tilanteissa voi olla kätevää sammuttaa näyttö, esimerkiksi sähkön säästämiseksi, huoneen pimentämistä varten, tai vaikkapa taikapeilin tietojen vain tietyille henkilöille näyttämiseksi.
+
+Tämän toiminnallisuuden voi toteuttaa monella tapaa. Yksinkertaisimmillaan näytön voi ajastaa menemään pois päältä tiettyyn vuorokaudenaikaan, esimnerkiksi `crontab`in avulla. Näyttöä voi ohjata myös esimerkiksi kameranliikkeen, kauko-ohjaime, painonapin tai muiden anturien avulla.
+
+Alla ohjeet erillisen liikeanturin (PIR) käyttämiseen ruudun päälle ja pois kytkemiseksi.
+
+
+#### Virtaa säästymään liikeanturin avulla
+
+Geneerisen liikeanturin voit tilata esimerkiksi Aliexpressestä hakusanalla [PIR sensor module](https://www.aliexpress.com/af/pir-sensor-module.html?trafficChannel=af&d=y&CatId=0&SearchText=pir+sensor+module&ltype=affiliate&SortType=total_tranpro_desc&groupsort=1&page=1)
+
+Kytke moduuli Raspberry Pihin muutamalla hyppylangalla seuraavalla tavalla.
+
+```
+ +-----------+       +----------+
+ |    RPi    |       |   PIR    |
+ +-----------+       +----------+
+ |3V3      5V---------POWER     |
+ |BCM2     5V|    +--|OUT       |
+ |BCM3    GND-----|---GND       |
+ |BCM4------------+  +----------+
+ |...     ...|
+ +-----------+
+ 
+ 5V -> POWER
+ GND -> GND
+ BCM4 -> OUT
+```
+
+1. Asenna MMM-PIR -moduuli [täältä](https://github.com/mboskamp/MMM-PIR).
+2. Avaa `config.js` haluamassasi tekstieditorissa, esim. Gedit: `gedit ~/MagicMirror/config/config.js`
+3. Lisää `modules` -listaan uusi `MMM-PIR` -konfiguraatio
+
+```
+{
+    module: 'MMM-PIR',
+    position: 'bottom_center',
+    config: {
+        sensorPin: 4,
+        delay: 10000, // turn off the display after 10s of no movement
+        turnOffDisplay: true
+    }
+}
+```
+
+(Huom! Mikäli olet vaihtanut Raspberry Pi:n käyttämään KMS OpenbGL -ajuria, joudut vaihtamaan vanhemman `tvservice -o` -komennon `vcgencmd display_power 0` ja `vcgencmd display_power 1` -komentoihin moduulin `displayON.sh` ja `displayOff.sh` skripteihin)
+
+
+### Vinkkejä, linkkejä ja ideoita virittelijöille
+
+**Ajastettu näytön sammuttaminen**
+
+[MMM-Remote-Control](https://github.com/Jopyth/MMM-Remote-Control) on erinomainen yleismoduuli taikapeilin etäohjaukseen. Käteväni webkäyttöliittymän lisäksi se tarjoaa erinomaisen rajapinnan peiliin muille moduuleille. Saat esimerkiksi vallan mainion ajastetun virransäästötilan aikaiseksi lähettämällä MMM-Remote-Control -moduulille `MONITORON` ja `MONITOROFF` -signaaleja [MMM-ModuleSchedulerilla](https://github.com/ianperrin/MMM-ModuleScheduler).
+
+
+**HSL-aikataulut peiliin**
+[mm-hsl-timetable](https://github.com/ZakarFin/mm-hsl-timetable) ja [MMM-Hsl-stops](https://github.com/0EQUALIZERO/MMM-Hsl-stops) näyttävät lähipysäkin bussiaikataulut peilillä.
+
+
+**Peili vain autorisoiduille käyttäjille**
+
+Yhdistä [MMM-Face-Reco-DNN](https://github.com/nischi/MMM-Face-Reco-DNN) kasvojentunnistusmoduuli [MMM-Remote-Control](https://github.com/Jopyth/MMM-Remote-Control) -moduuliin, jolloin taikapeili näytetään vain tunnistetuille käyttäjille. Tämän saat toimimaan kaappaamalla `USERS_LOGIN` ja `USERS_LOGOUT` -notifikaatiot esimerkiksi [MMM-NotificationTrigger](https://github.com/eouia/MMM-NotificationTrigger) -moduulin avulla, ja välittämällä näistä signaaleista `MONITORON` ja `MONITORON` -notifikaatiot.
 
